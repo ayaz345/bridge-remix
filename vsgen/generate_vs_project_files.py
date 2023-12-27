@@ -44,7 +44,7 @@ test_case_projects = []
 
 games = load_game_targets()
 for g in games:
-    project = "Games/" + g
+    project = f"Games/{g}"
     commandline = games[g]['commandline']
     working_dir = games[g]['workingdir']
     output_dir = games[g]['outputdir']

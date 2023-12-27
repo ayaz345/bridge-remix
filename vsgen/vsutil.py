@@ -58,22 +58,21 @@ def write_file_if_not_identical(output_root_path, filename, data):
         orig = str(open(target, "rt").read()).strip()
         if orig == data:
             return False
-        else:
-            if target.endswith(".sln"):
-                # debug: sln should rarely ever change, but VS is super finicky and ends up rewriting it
-                # when it doesn't look *just* right; show a diff in this case so we can figure out what's changing
-                print("sln has changed, diff:")
-                origlist = orig.split('\n')
-                newlist = data.split('\n')
-                delta = difflib.unified_diff(origlist, newlist, fromfile='before', tofile='after')
-                for l in delta:
-                    if l[-1] == '\n':
-                        print(l, end='')
-                    else:
-                        print(l)
+        if target.endswith(".sln"):
+            # debug: sln should rarely ever change, but VS is super finicky and ends up rewriting it
+            # when it doesn't look *just* right; show a diff in this case so we can figure out what's changing
+            print("sln has changed, diff:")
+            origlist = orig.split('\n')
+            newlist = data.split('\n')
+            delta = difflib.unified_diff(origlist, newlist, fromfile='before', tofile='after')
+            for l in delta:
+                if l[-1] == '\n':
+                    print(l, end='')
+                else:
+                    print(l)
 
     print(data, file=open(target, "wt"))
-    print("Generated " + target)
+    print(f"Generated {target}")
     return True
 
 # returns a dictionary such as:
@@ -87,18 +86,18 @@ def write_file_if_not_identical(output_root_path, filename, data):
 def load_game_targets():
     if not os.path.exists("../gametargets.conf"):
         return {}
-    
+
     config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     config.read("../gametargets.conf")
 
-    ret = {}
-
-    for section in config:
-        if config.has_option(section, 'outputdir') and config.has_option(section, 'workingdir') and config.has_option(section, 'commandline'):
-            ret[section] = {
-                "outputdir": config.get(section, 'outputdir'),
-                "workingdir": config.get(section, 'workingdir'),
-                "commandline": config.get(section, 'commandline')
-            }
-    
-    return ret
+    return {
+        section: {
+            "outputdir": config.get(section, 'outputdir'),
+            "workingdir": config.get(section, 'workingdir'),
+            "commandline": config.get(section, 'commandline'),
+        }
+        for section in config
+        if config.has_option(section, 'outputdir')
+        and config.has_option(section, 'workingdir')
+        and config.has_option(section, 'commandline')
+    }
