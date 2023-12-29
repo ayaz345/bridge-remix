@@ -40,18 +40,18 @@ def generate_testcase_project(vcxproj_output_path, test_case, command_line, outp
         test_case_commandline_arguments = ''
 
     test_name = pathsep_to_underscore(test_case)
-    vcxproj_target = test_name + ".vcxproj"
-    
+    vcxproj_target = f"{test_name}.vcxproj"
+
     test_project_guid=generate_guid(test_name)
-    
+
     if not os.path.isabs(test_case_executable):
         test_case_executable = os.path.join(working_directory, test_case_executable)
 
 
     copy_target = "copy_" + test_name.replace("-", "_")
-    copy_target_server = copy_target + "_server"
-    copy_target_launcher = copy_target + "_launcher"
-    
+    copy_target_server = f"{copy_target}_server"
+    copy_target_launcher = f"{copy_target}_launcher"
+
     projt = Template(open("testcase_project.vcxproj.template").read())
     d = projt.safe_substitute(test_project_guid=test_project_guid,
                               copy_target=copy_target,
@@ -67,7 +67,7 @@ def generate_testcase_project(vcxproj_output_path, test_case, command_line, outp
     write_file_if_not_identical(vcxproj_output_path, vcxproj_target, d)
 
     # don't touch user files if they already exist, otherwise fill them in
-    user_target = os.path.join(vcxproj_output_path, vcxproj_target + ".user")
+    user_target = os.path.join(vcxproj_output_path, f"{vcxproj_target}.user")
     if not os.path.exists(user_target):
         usert = Template(open("testcase_project.vcxproj.user.template").read())
         d = usert.safe_substitute(test_case_executable=test_case_executable.replace("&", "&amp;"),
@@ -75,13 +75,15 @@ def generate_testcase_project(vcxproj_output_path, test_case, command_line, outp
                                   test_case_working_directory=working_directory)
 
         print(d, file=open(user_target, "wt"))
-        print("Generated " + pathsep_to_backslash(user_target))
+        print(f"Generated {pathsep_to_backslash(user_target)}")
 
-    smartcmdline_target = os.path.join(vcxproj_output_path, test_name + ".args.json")
+    smartcmdline_target = os.path.join(
+        vcxproj_output_path, f"{test_name}.args.json"
+    )
     if not os.path.exists(smartcmdline_target):
         scmdt = Template(open("testcase_project.args.json.template").read())
         d = scmdt.safe_substitute(test_project_guid=test_project_guid,
                                   test_case_commandline_arguments=test_case_commandline_arguments)
-        
+
         print(d, file=open(smartcmdline_target, "wt"))
-        print("Generated " + pathsep_to_backslash(smartcmdline_target))
+        print(f"Generated {pathsep_to_backslash(smartcmdline_target)}")

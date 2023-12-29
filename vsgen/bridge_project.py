@@ -34,7 +34,7 @@ def generate_bridge_project(output_root_path, bridge_cpp_defines, project_base_n
     tree = { }
     vcxproj_file_references = []
     vcxproj_include_paths = { }
-    
+
     def add_file(dirpath, filename):
         tree[dirpath].append(filename)
         vcxproj_file_references.append(os.path.join(dirpath, filename))
@@ -55,12 +55,12 @@ def generate_bridge_project(output_root_path, bridge_cpp_defines, project_base_n
         if ext in header_exts:
             # our include paths are messy, we may include stuff from any point in the dirpath
             path = dirpath
-            while path != "" and path != "..":
+            while path not in ["", ".."]:
                 if path not in vcxproj_include_paths:
                     vcxproj_include_paths[path] = 1
 
                 path, tail = os.path.split(path)
-                
+
     def process_tree(root, external):
         for dirpath, dirnames, files in os.walk(root, followlinks=True):
             # project file is one dir above, adjust here so that relative paths point at the right place
@@ -68,7 +68,8 @@ def generate_bridge_project(output_root_path, bridge_cpp_defines, project_base_n
 
             for f in files:
                 process_file(dirpath, f, external)
-    sub_tree_dir = "../" + sub_dir
+
+    sub_tree_dir = f"../{sub_dir}"
     process_tree(sub_tree_dir, False)
     process_tree("../external", True)
 
@@ -78,7 +79,7 @@ def generate_bridge_project(output_root_path, bridge_cpp_defines, project_base_n
     # this might change over time...
 
     build_output_search_paths = [ sub_dir ]
-    
+
     def build_search_path(build_dir):
         # list of build directory paths with headers in them
         # (these need to come first due to header naming conflicts with external libs)
@@ -105,10 +106,14 @@ def generate_bridge_project(output_root_path, bridge_cpp_defines, project_base_n
 
     # add a couple of interesting files at the root
     for f in [ "meson.build" ]:
-        file_references += "    <ClCompile Include=\"" + pathsep_to_backslash("../" + f) + "\" />\n"
+        file_references += (
+            "    <ClCompile Include=\""
+            + pathsep_to_backslash(f"../{f}")
+            + "\" />\n"
+        )
 
     project_template = Template(open("bridge-remix.vcxproj.template", "rt").read())
-        
+
     data = project_template.safe_substitute(
         bridge_remix_project_guid=generate_guid(project_base_name),
         bridge_cpp_defines=bridge_cpp_defines,
@@ -120,7 +125,7 @@ def generate_bridge_project(output_root_path, bridge_cpp_defines, project_base_n
         include_search_path_release_64=include_search_path_release_64,
         file_references=file_references)
 
-    project_name = project_base_name + ".vcxproj"
+    project_name = f"{project_base_name}.vcxproj"
     write_file_if_not_identical(output_root_path, project_name, data)
 
     # generate vcxproj.filters
@@ -149,12 +154,12 @@ def generate_bridge_project(output_root_path, bridge_cpp_defines, project_base_n
     for path in tree:
         filter_name = pathsep_to_backslash(path[3:])
         filters += filter_template.safe_substitute(filter_name=filter_name, filter_guid=generate_guid(filter_name))
-        
+
         for filename in tree[path]:
-            fileref = pathsep_to_backslash(path + "/" + filename)
+            fileref = pathsep_to_backslash(f"{path}/{filename}")
             references += reference_template.safe_substitute(path=fileref, filter_name=filter_name)
 
     data = filters_file_template.safe_substitute(filters=filters, file_references=references)
-    project_filter_name = project_base_name + ".vcxproj.filters"
+    project_filter_name = f"{project_base_name}.vcxproj.filters"
     if write_file_if_not_identical(output_root_path, project_filter_name, data):
-        print("Generated " + project_filter_name)
+        print(f"Generated {project_filter_name}")
